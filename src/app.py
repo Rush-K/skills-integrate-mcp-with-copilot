@@ -25,57 +25,98 @@ activities = {
         "description": "Learn strategies and compete in chess tournaments",
         "schedule": "Fridays, 3:30 PM - 5:00 PM",
         "max_participants": 12,
-        "participants": ["michael@mergington.edu", "daniel@mergington.edu"]
+        "participants": ["michael@mergington.edu", "daniel@mergington.edu"],
+        "category": "Academic",
+        "tags": ["Strategy", "Competition"],
+        "leader": "Mr. Patel"
     },
     "Programming Class": {
         "description": "Learn programming fundamentals and build software projects",
         "schedule": "Tuesdays and Thursdays, 3:30 PM - 4:30 PM",
         "max_participants": 20,
-        "participants": ["emma@mergington.edu", "sophia@mergington.edu"]
+        "participants": ["emma@mergington.edu", "sophia@mergington.edu"],
+        "category": "STEM",
+        "tags": ["Coding", "Robotics"],
+        "leader": "Mrs. Johnson"
     },
     "Gym Class": {
         "description": "Physical education and sports activities",
         "schedule": "Mondays, Wednesdays, Fridays, 2:00 PM - 3:00 PM",
         "max_participants": 30,
-        "participants": ["john@mergington.edu", "olivia@mergington.edu"]
+        "participants": ["john@mergington.edu", "olivia@mergington.edu"],
+        "category": "Athletics",
+        "tags": ["Fitness", "Teamwork"],
+        "leader": "Coach Rivera"
     },
     "Soccer Team": {
         "description": "Join the school soccer team and compete in matches",
         "schedule": "Tuesdays and Thursdays, 4:00 PM - 5:30 PM",
         "max_participants": 22,
-        "participants": ["liam@mergington.edu", "noah@mergington.edu"]
+        "participants": ["liam@mergington.edu", "noah@mergington.edu"],
+        "category": "Athletics",
+        "tags": ["Soccer", "Competition"],
+        "leader": "Coach Bennett"
     },
     "Basketball Team": {
         "description": "Practice and play basketball with the school team",
         "schedule": "Wednesdays and Fridays, 3:30 PM - 5:00 PM",
         "max_participants": 15,
-        "participants": ["ava@mergington.edu", "mia@mergington.edu"]
+        "participants": ["ava@mergington.edu", "mia@mergington.edu"],
+        "category": "Athletics",
+        "tags": ["Basketball", "Training"],
+        "leader": "Coach Simmons"
     },
     "Art Club": {
         "description": "Explore your creativity through painting and drawing",
         "schedule": "Thursdays, 3:30 PM - 5:00 PM",
         "max_participants": 15,
-        "participants": ["amelia@mergington.edu", "harper@mergington.edu"]
+        "participants": ["amelia@mergington.edu", "harper@mergington.edu"],
+        "category": "Arts",
+        "tags": ["Drawing", "Creativity"],
+        "leader": "Ms. Wilson"
     },
     "Drama Club": {
         "description": "Act, direct, and produce plays and performances",
         "schedule": "Mondays and Wednesdays, 4:00 PM - 5:30 PM",
         "max_participants": 20,
-        "participants": ["ella@mergington.edu", "scarlett@mergington.edu"]
+        "participants": ["ella@mergington.edu", "scarlett@mergington.edu"],
+        "category": "Arts",
+        "tags": ["Performing", "Theater"],
+        "leader": "Mr. Lee"
     },
     "Math Club": {
         "description": "Solve challenging problems and participate in math competitions",
         "schedule": "Tuesdays, 3:30 PM - 4:30 PM",
         "max_participants": 10,
-        "participants": ["james@mergington.edu", "benjamin@mergington.edu"]
+        "participants": ["james@mergington.edu", "benjamin@mergington.edu"],
+        "category": "STEM",
+        "tags": ["Math", "Problem Solving"],
+        "leader": "Dr. Nguyen"
     },
     "Debate Team": {
         "description": "Develop public speaking and argumentation skills",
         "schedule": "Fridays, 4:00 PM - 5:30 PM",
         "max_participants": 12,
-        "participants": ["charlotte@mergington.edu", "henry@mergington.edu"]
+        "participants": ["charlotte@mergington.edu", "henry@mergington.edu"],
+        "category": "Academic",
+        "tags": ["Public Speaking", "Leadership"],
+        "leader": "Ms. Carter"
     }
 }
+
+
+def build_club_profile(activity_name: str, details: dict):
+    """Normalize activity data into a club directory entry."""
+    return {
+        "name": activity_name,
+        "description": details["description"],
+        "schedule": details["schedule"],
+        "category": details.get("category", "General"),
+        "tags": details.get("tags", []),
+        "leader": details.get("leader", "Club Advisor"),
+        "max_participants": details["max_participants"],
+        "participants": details.get("participants", []),
+    }
 
 
 @app.get("/")
@@ -86,6 +127,25 @@ def root():
 @app.get("/activities")
 def get_activities():
     return activities
+
+
+@app.get("/clubs")
+def get_clubs(category: str | None = None):
+    """Return a searchable directory of school clubs."""
+    clubs = [build_club_profile(name, details) for name, details in activities.items()]
+    if category:
+        clubs = [club for club in clubs if club["category"].upper() == category.upper()]
+    return clubs
+
+
+@app.get("/clubs/{club_name}")
+def get_club(club_name: str):
+    """Return the club detail page data for a specific club."""
+    club_name = club_name.replace("%20", " ")
+    if club_name not in activities:
+        raise HTTPException(status_code=404, detail="Club not found")
+
+    return build_club_profile(club_name, activities[club_name])
 
 
 @app.post("/activities/{activity_name}/signup")
