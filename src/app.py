@@ -26,81 +26,63 @@ activities = {
         "schedule": "Fridays, 3:30 PM - 5:00 PM",
         "max_participants": 12,
         "participants": ["michael@mergington.edu", "daniel@mergington.edu"],
-        "category": "Academic",
-        "tags": ["Strategy", "Competition"],
-        "leader": "Mr. Patel"
+        "pending_members": []
     },
     "Programming Class": {
         "description": "Learn programming fundamentals and build software projects",
         "schedule": "Tuesdays and Thursdays, 3:30 PM - 4:30 PM",
         "max_participants": 20,
         "participants": ["emma@mergington.edu", "sophia@mergington.edu"],
-        "category": "STEM",
-        "tags": ["Coding", "Robotics"],
-        "leader": "Mrs. Johnson"
+        "pending_members": []
     },
     "Gym Class": {
         "description": "Physical education and sports activities",
         "schedule": "Mondays, Wednesdays, Fridays, 2:00 PM - 3:00 PM",
         "max_participants": 30,
         "participants": ["john@mergington.edu", "olivia@mergington.edu"],
-        "category": "Athletics",
-        "tags": ["Fitness", "Teamwork"],
-        "leader": "Coach Rivera"
+        "pending_members": []
     },
     "Soccer Team": {
         "description": "Join the school soccer team and compete in matches",
         "schedule": "Tuesdays and Thursdays, 4:00 PM - 5:30 PM",
         "max_participants": 22,
         "participants": ["liam@mergington.edu", "noah@mergington.edu"],
-        "category": "Athletics",
-        "tags": ["Soccer", "Competition"],
-        "leader": "Coach Bennett"
+        "pending_members": []
     },
     "Basketball Team": {
         "description": "Practice and play basketball with the school team",
         "schedule": "Wednesdays and Fridays, 3:30 PM - 5:00 PM",
         "max_participants": 15,
         "participants": ["ava@mergington.edu", "mia@mergington.edu"],
-        "category": "Athletics",
-        "tags": ["Basketball", "Training"],
-        "leader": "Coach Simmons"
+        "pending_members": []
     },
     "Art Club": {
         "description": "Explore your creativity through painting and drawing",
         "schedule": "Thursdays, 3:30 PM - 5:00 PM",
         "max_participants": 15,
         "participants": ["amelia@mergington.edu", "harper@mergington.edu"],
-        "category": "Arts",
-        "tags": ["Drawing", "Creativity"],
-        "leader": "Ms. Wilson"
+        "pending_members": []
     },
     "Drama Club": {
         "description": "Act, direct, and produce plays and performances",
         "schedule": "Mondays and Wednesdays, 4:00 PM - 5:30 PM",
         "max_participants": 20,
         "participants": ["ella@mergington.edu", "scarlett@mergington.edu"],
-        "category": "Arts",
-        "tags": ["Performing", "Theater"],
-        "leader": "Mr. Lee"
+        "pending_members": []
     },
     "Math Club": {
         "description": "Solve challenging problems and participate in math competitions",
         "schedule": "Tuesdays, 3:30 PM - 4:30 PM",
         "max_participants": 10,
         "participants": ["james@mergington.edu", "benjamin@mergington.edu"],
-        "category": "STEM",
-        "tags": ["Math", "Problem Solving"],
-        "leader": "Dr. Nguyen"
+        "pending_members": []
     },
     "Debate Team": {
         "description": "Develop public speaking and argumentation skills",
         "schedule": "Fridays, 4:00 PM - 5:30 PM",
         "max_participants": 12,
         "participants": ["charlotte@mergington.edu", "henry@mergington.edu"],
-        "category": "Academic",
-        "tags": ["Public Speaking", "Leadership"],
-        "leader": "Ms. Carter"
+        "pending_members": []
     }
 }
 
@@ -129,23 +111,42 @@ def get_activities():
     return activities
 
 
-@app.get("/clubs")
-def get_clubs(category: str | None = None):
-    """Return a searchable directory of school clubs."""
-    clubs = [build_club_profile(name, details) for name, details in activities.items()]
-    if category:
-        clubs = [club for club in clubs if club["category"].upper() == category.upper()]
-    return clubs
+@app.post("/activities/{activity_name}/request")
+def request_membership(activity_name: str, email: str):
+    """Request membership for a student pending teacher approval."""
+    if activity_name not in activities:
+        raise HTTPException(status_code=404, detail="Activity not found")
+
+    activity = activities[activity_name]
+    activity.setdefault("pending_members", [])
+    if email in activity["participants"] or email in activity["pending_members"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Student is already signed up or pending approval"
+        )
+
+    activity["pending_members"].append(email)
+    return {
+        "message": f"Membership request received for {email} in {activity_name}",
+        "status": "pending"
+    }
 
 
-@app.get("/clubs/{club_name}")
-def get_club(club_name: str):
-    """Return the club detail page data for a specific club."""
-    club_name = club_name.replace("%20", " ")
-    if club_name not in activities:
-        raise HTTPException(status_code=404, detail="Club not found")
+@app.post("/activities/{activity_name}/approve")
+def approve_membership(activity_name: str, email: str):
+    """Approve a pending student and move them into the participant list."""
+    if activity_name not in activities:
+        raise HTTPException(status_code=404, detail="Activity not found")
 
-    return build_club_profile(club_name, activities[club_name])
+    activity = activities[activity_name]
+    activity.setdefault("pending_members", [])
+    if email not in activity["pending_members"]:
+        raise HTTPException(status_code=400, detail="Student is not pending approval")
+
+    activity["pending_members"].remove(email)
+    if email not in activity["participants"]:
+        activity["participants"].append(email)
+    return {"message": f"Approved {email} for {activity_name}", "status": "approved"}
 
 
 @app.post("/activities/{activity_name}/signup")
@@ -159,10 +160,10 @@ def signup_for_activity(activity_name: str, email: str):
     activity = activities[activity_name]
 
     # Validate student is not already signed up
-    if email in activity["participants"]:
+    if email in activity["participants"] or email in activity["pending_members"]:
         raise HTTPException(
             status_code=400,
-            detail="Student is already signed up"
+            detail="Student is already signed up or pending approval"
         )
 
     # Add student
