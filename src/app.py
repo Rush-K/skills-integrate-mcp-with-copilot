@@ -87,6 +87,20 @@ activities = {
 }
 
 
+def build_club_profile(activity_name: str, details: dict):
+    """Normalize activity data into a club directory entry."""
+    return {
+        "name": activity_name,
+        "description": details["description"],
+        "schedule": details["schedule"],
+        "category": details.get("category", "General"),
+        "tags": details.get("tags", []),
+        "leader": details.get("leader", "Club Advisor"),
+        "max_participants": details["max_participants"],
+        "participants": details.get("participants", []),
+    }
+
+
 @app.get("/")
 def root():
     return RedirectResponse(url="/static/index.html")

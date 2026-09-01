@@ -3,6 +3,36 @@ document.addEventListener("DOMContentLoaded", () => {
   const activitySelect = document.getElementById("activity");
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
+  const clubsList = document.getElementById("clubs-list");
+
+  async function fetchClubs() {
+    try {
+      const response = await fetch("/clubs");
+      const clubs = await response.json();
+
+      if (!clubsList) return;
+      clubsList.innerHTML = "";
+
+      clubs.forEach((club) => {
+        const clubCard = document.createElement("div");
+        clubCard.className = "club-card";
+        clubCard.innerHTML = `
+          <h4>${club.name}</h4>
+          <p><strong>Category:</strong> ${club.category}</p>
+          <p>${club.description}</p>
+          <p><strong>Leader:</strong> ${club.leader}</p>
+          <p><strong>Schedule:</strong> ${club.schedule}</p>
+          <div class="tag-list">
+            ${club.tags.map((tag) => `<span class="tag">${tag}</span>`).join("")}
+          </div>
+        `;
+        clubsList.appendChild(clubCard);
+      });
+    } catch (error) {
+      clubsList.innerHTML = "<p>Failed to load club directory.</p>";
+      console.error("Error fetching clubs:", error);
+    }
+  }
 
   // Function to fetch activities from API
   async function fetchActivities() {
@@ -157,4 +187,5 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Initialize app
   fetchActivities();
+  fetchClubs();
 });
